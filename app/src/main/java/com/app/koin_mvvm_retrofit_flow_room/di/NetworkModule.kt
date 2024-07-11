@@ -3,17 +3,34 @@ package com.app.koin_mvvm_retrofit_flow_room.di
 import com.app.koin_mvvm_retrofit_flow_room.data.remote.ApiService
 import com.app.koin_mvvm_retrofit_flow_room.utils.Constants.Companion.BASE_URL_GET
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.android.BuildConfig
 import org.koin.dsl.module
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
+fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
+    val logLevel = if (BuildConfig.DEBUG) {
+        HttpLoggingInterceptor.Level.BODY
+    } else {
+        HttpLoggingInterceptor.Level.NONE
+    }
 
-fun provideHttpClient(): OkHttpClient {
+    return HttpLoggingInterceptor().apply {
+        level = logLevel
+    }
+}
+
+fun provideHttpClient(
+    httpLoggingInterceptor: HttpLoggingInterceptor
+): OkHttpClient {
     return OkHttpClient
         .Builder()
-        .readTimeout(60, TimeUnit.SECONDS)
-        .connectTimeout(60, TimeUnit.SECONDS)
+        .addInterceptor(httpLoggingInterceptor)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build()
 }
 
@@ -38,7 +55,8 @@ fun provideService(retrofit: Retrofit): ApiService =
 
 
 val networkModule= module {
-    single { provideHttpClient() }
+    single { provideHttpLoggingInterceptor() }
+    single { provideHttpClient(get()) }
     single { provideConverterFactory() }
     single { provideRetrofit(get(),get()) }
     single { provideService(get()) }
